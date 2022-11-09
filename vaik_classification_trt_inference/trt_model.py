@@ -8,8 +8,7 @@ import pycuda.autoinit
 
 
 class TrtModel:
-    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None, preprocess: str = None):
-        self.preprocess = preprocess
+    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None):
         self.classes = classes
         # Load TRT engine
         self.logger = trt.Logger(trt.Logger.ERROR)
@@ -59,8 +58,6 @@ class TrtModel:
     def __inference(self, resize_input_tensor: np.ndarray) -> np.ndarray:
         if len(resize_input_tensor.shape) != 4:
             raise ValueError('dimension mismatch')
-        if self.preprocess == 'V2':
-            resize_input_tensor = (resize_input_tensor / 128.0) / 128.0
 
         model_input_dtype = self.inputs[0]['dtype']
         output_spec = self.__output_spec()
