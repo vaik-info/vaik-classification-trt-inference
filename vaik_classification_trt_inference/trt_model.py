@@ -8,7 +8,7 @@ import pycuda.autoinit
 
 
 class TrtModel:
-    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None):
+    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None, is_int8: bool = False):
         self.classes = classes
         # Load TRT engine
         self.logger = trt.Logger(trt.Logger.ERROR)
@@ -69,6 +69,7 @@ class TrtModel:
             batch_pad = np.zeros(self.inputs[0]['shape'], model_input_dtype)
             batch_pad[:batch.shape[0], :, :, :] = batch.astype(model_input_dtype)
             output_tensor[index:index + batch.shape[0]] = self.__inference_tensor(batch_pad)[:batch.shape[0]]
+        output_tensor = (output_tensor - 128.0) / 128.0
         return output_tensor
 
     def __inference_tensor(self, input_array: np.ndarray):
