@@ -25,7 +25,10 @@ classes = ('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight
 image = np.asarray(
     Image.open(os.path.expanduser('~/.vaik-mnist-classification-dataset/valid/eight/valid_000000024.jpg')).convert('RGB'))
 
+# fp16
 model = TrtModel(input_saved_model_dir_path, classes)
+# int8
+model = TrtModel(input_saved_model_dir_path, classes, preprocess='V2')
 output, raw_pred = model.inference([image])
 ```
 
