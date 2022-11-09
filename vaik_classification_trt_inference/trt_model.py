@@ -8,7 +8,8 @@ import pycuda.autoinit
 
 
 class TrtModel:
-    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None, is_int8: bool = False):
+    def __init__(self, input_saved_model_path: str = None, classes: Tuple = None, preprocess: str = None):
+        self.preprocess = preprocess
         self.classes = classes
         # Load TRT engine
         self.logger = trt.Logger(trt.Logger.ERROR)
@@ -48,7 +49,7 @@ class TrtModel:
             else:
                 self.outputs.append(binding)
 
-    def inference(self, input_image_list: List[np.ndarray]) -> Tuple[List[Dict], Dict]:
+    def inference(self, input_image_list: List[np.ndarray]) -> Tuple[List[Dict], np.ndarray]:
         resized_image_array = self.__preprocess_image_list(input_image_list,
                                                            (self.inputs[0]['shape'][1], self.inputs[0]['shape'][2]))
         raw_pred = self.__inference(resized_image_array)
@@ -58,18 +59,17 @@ class TrtModel:
     def __inference(self, resize_input_tensor: np.ndarray) -> np.ndarray:
         if len(resize_input_tensor.shape) != 4:
             raise ValueError('dimension mismatch')
-        if not np.issubdtype(resize_input_tensor.dtype, np.uint8):
-            raise ValueError(f'dtype mismatch expected: {np.uint8}, actual: {resize_input_tensor.dtype}')
+        if self.preprocess == 'V2':
+            resize_input_tensor = (resize_input_tensor / 128.0) / 128.0
 
         model_input_dtype = self.inputs[0]['dtype']
         output_spec = self.__output_spec()
         output_tensor = np.zeros((resize_input_tensor.shape[0], *output_spec[0][1:]), output_spec[1])
         for index in range(0, resize_input_tensor.shape[0], self.inputs[0]['shape'][0]):
             batch = resize_input_tensor[index:index + self.inputs[0]['shape'][0], :, :, :]
-            batch_pad = np.zeros(self.inputs[0]['shape'], model_input_dtype)
+            batch_pad = np.zeros(self.inputs[0]['shape'], batch.dtype)
             batch_pad[:batch.shape[0], :, :, :] = batch.astype(model_input_dtype)
             output_tensor[index:index + batch.shape[0]] = self.__inference_tensor(batch_pad)[:batch.shape[0]]
-        output_tensor = (output_tensor - 128.0) / 128.0
         return output_tensor
 
     def __inference_tensor(self, input_array: np.ndarray):
