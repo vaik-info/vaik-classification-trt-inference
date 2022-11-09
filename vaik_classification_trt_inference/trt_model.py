@@ -77,7 +77,7 @@ class TrtModel:
         output = np.zeros(*self.__output_spec())
 
         # Process I/O and execute the network
-        cuda.memcpy_htod(self.inputs[0]["allocation"], np.ascontiguousarray(input_array))
+        cuda.memcpy_htod(self.inputs[0]["allocation"], np.ascontiguousarray(input_array.astype(self.inputs[0]['dtype'])))
         self.context.execute_v2(self.allocations)
         cuda.memcpy_dtoh(output, self.outputs[0]["allocation"])
         return output
